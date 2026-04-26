@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structure Operation | Specialist Training</title>
+    
+    <!-- URL FIXER -->
+    <script>
+        if (window.location.pathname.endsWith('.html/')) {
+            window.location.replace(window.location.href.replace('.html/', '.html'));
+        }
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Pure 16:9 Board - No CSS borders so the image artwork shines */
+        #board-wrapper {
+            max-height: 65vh; 
+            width: 100%;
+            aspect-ratio: 16 / 9; 
+            margin: 0 auto;
+            position: relative;
+            background-color: #000; 
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+        }
+
+        #board-image {
+            width: 100%;
+            height: 100%;
+            object-fit: fill; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+        
+        #ailments-layer {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+
+        /* Invisible Surgical Holes that light up on hover */
+        .ailment-hole {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: crosshair;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translate(-50%, -50%); /* Centers the coordinate precisely */
+        }
+
+        .ailment-hole:hover {
+            border: 3px solid #fbbf24;
+            background: rgba(251, 191, 36, 0.2);
+            transform: translate(-50%, -50%) scale(1.15);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+        }
+
+        .ailment-extracted {
+            opacity: 0.8;
+            background: rgba(16, 185, 129, 0.4);
+            border: 3px solid #10b981;
+            pointer-events: none;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+        }
+
+        /* Buzzer Shake Animation */
+        .buzzer-active {
+            animation: buzzer-shake 0.1s infinite;
+        }
+        .buzzer-flash {
+            position: absolute;
+            inset: 0;
+            background-color: rgba(239, 68, 68, 0.4);
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        @keyframes buzzer-shake {
+            0% { transform: translate(3px, 2px); }
+            50% { transform: translate(-3px, -2px); }
+            100% { transform: translate(2px, 3px); }
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .phase-hidden { display: none !important; }
+        .phase-active { display: flex; animation: fadeIn 0.6s ease-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .avatar-main {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 15%;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="p-4 lg:p-6">
+
+    <!-- Header -->
+    <header class="w-full max-w-7xl mx-auto mb-4 flex justify-between items-center px-2">
+        <div>
+            <h1 class="text-3xl font-black tracking-tighter text-red-500 uppercase leading-none">Operation: Structural Repair</h1>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">
+                Extract the failures | Avoid the Take-The-Bait Buzzer
+            </p>
+        </div>
+        <div id="escalation-meter" class="flex items-center gap-4 bg-slate-800 p-3 rounded-2xl border border-slate-700 shadow-lg">
+            <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                <i data-lucide="activity" class="w-4 h-4 text-red-400"></i> Heat Level:
+            </span>
+            <div class="w-40 h-4 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                <div id="meter-fill" class="w-0 h-full bg-emerald-500 transition-all duration-500"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Phase 1: Briefing -->
+    <div id="phase-briefing" class="phase-active flex-col w-full max-w-4xl glass-panel rounded-[40px] p-10 lg:p-14 shadow-2xl mt-8 mx-auto relative overflow-hidden">
+        <div class="grid md:grid-cols-[1fr_280px] gap-12 items-center relative z-10">
+            <div class="space-y-8 text-left">
+                <div class="flex items-center gap-4 text-red-400">
+                    <i data-lucide="syringe" class="w-10 h-10"></i>
+                    <h2 class="text-4xl font-black uppercase tracking-tight">Mission: Contact Repair</h2>
+                </div>
+                
+                <div class="bg-slate-950/80 p-6 rounded-3xl border-l-[12px] border-red-500 shadow-inner">
+                    <p class="font-mono text-xs text-red-500/60 mb-3 uppercase tracking-[0.4em] font-bold">Current Status:</p>
+                    <p class="text-2xl italic text-slate-100 leading-relaxed font-light">
+                        "Staff are reporting contacts that drift, repeat, and escalate. The procedural structure has failed."
+                    </p>
+                </div>
+                
+                <p class="text-lg text-slate-400 leading-relaxed font-light">
+                    Operate on the patient to extract the <strong>Communication Failures</strong>. Apply the correct structural tool to successfully remove the ailment. One wrong move and the <strong>Escalation Buzzer</strong> will sound!
+                </p>
+
+                <button onclick="startGame()" class="w-full bg-red-600 hover:bg-red-500 text-white font-black py-5 rounded-3xl transition-all flex items-center justify-center gap-4 text-xl shadow-[0_15px_40px_rgba(239,68,68,0.3)] transform active:scale-95">
+                    BEGIN PROCEDURE <i data-lucide="chevron-right" class="w-7 h-7"></i>
+                </button>
+            </div>
+
+            <div class="flex flex-col items-center gap-6">
+                <div class="w-56 h-56 rounded-full border-4 border-red-500/30 p-1 shadow-2xl bg-slate-900 overflow-hidden">
+                    <img src="https://thesimpleaiguide-create.github.io/clinic_detective.html/patience-avatar.jpeg" alt="Patience Waites" class="avatar-main">
+                </div>
+                <div class="text-center">
+                    <p class="text-xl font-bold text-white uppercase tracking-tighter italic">Patience Waites</p>
+                    <p class="text-[10px] text-red-500 uppercase font-black tracking-widest opacity-80">Chief Surgeon</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 2: Game Board -->
+    <div id="phase-playing" class="phase-hidden flex-col w-full max-w-7xl mx-auto flex-row gap-6 h-[calc(100vh-140px)]">
+        <!-- Main Board -->
+        <div class="flex-1 flex flex-col gap-4 overflow-hidden">
+            <div id="board-wrapper">
+                <img id="board-image" src="https://thesimpleaiguide-create.github.io/clinic_detective.html/operation-bg.jpeg" alt="Operation Board">
+                <div id="ailments-layer"></div>
+                <div id="buzzer-overlay" class="hidden"></div>
+            </div>
+            
+            <div class="glass-panel p-4 rounded-2xl border border-slate-700 text-center shadow-xl flex items-center justify-center gap-3">
+                <i data-lucide="mouse-pointer-2" class="w-5 h-5 text-slate-400"></i>
+                <p id="instruction-text" class="text-sm font-black text-slate-300 uppercase tracking-[0.2em]">Select an ailment cavity to begin extraction...</p>
+            </div>
+        </div>
+
+        <!-- Vitals / Operation Log Sidebar -->
+        <div class="w-full lg:w-[360px] flex flex-col h-full overflow-hidden">
+            <div class="glass-panel rounded-[32px] p-8 flex-1 flex flex-col overflow-hidden shadow-xl">
+                <div class="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
+                    <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                        <i data-lucide="clipboard-list" class="w-4 h-4 text-emerald-400"></i> Operation Log
+                    </h3>
+                    <div class="bg-slate-900 px-3 py-1 rounded-full text-xs font-black text-emerald-400 border border-emerald-500/20">
+                        <span id="evidence-count">0</span> / 5
+                    </div>
+                </div>
+                <div id="operation-log" class="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
+                    <!-- Logs injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 3: Extraction Modal -->
+    <div id="extraction-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center z-50 hidden p-6">
+        <div class="bg-slate-800 rounded-[50px] border-4 border-slate-700 w-full max-w-2xl p-10 shadow-3xl overflow-hidden relative">
+            <div class="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
+            
+            <div class="flex items-center gap-6 mb-8">
+                <div id="modal-icon-box" class="p-5 bg-slate-900 rounded-[28px] text-red-500 shadow-inner"></div>
+                <div>
+                    <h3 id="modal-title" class="text-3xl font-black uppercase tracking-tighter text-white"></h3>
+                    <p class="text-slate-500 text-xs uppercase font-black tracking-widest mt-1">Procedural Ailment Detected</p>
+                </div>
+            </div>
+
+            <p id="modal-desc" class="text-xl text-slate-300 mb-10 italic leading-relaxed font-light pl-6 border-l-4 border-slate-600"></p>
+
+            <div class="space-y-6">
+                <p class="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2">Choose Precision Structural Tool:</p>
+                <div id="tool-options" class="space-y-4">
+                    <!-- JS Injected -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 4: Final Result -->
+    <div id="phase-result" class="phase-hidden flex-col w-full max-w-3xl mx-auto text-center mt-6">
+        <div id="result-icon-container" class="w-32 h-32 rounded-[40px] flex items-center justify-center mx-auto mb-8 shadow-2xl scale-110"></div>
+        <h2 id="result-title" class="text-6xl font-black uppercase mb-4 tracking-tighter"></h2>
+        <p id="result-body" class="text-xl text-slate-300 mb-12 leading-relaxed max-w-2xl mx-auto font-light"></p>
+        <button onclick="location.reload()" class="bg-slate-100 hover:bg-white text-slate-900 font-black py-6 px-12 rounded-3xl text-xl shadow-2xl transition-all transform active:scale-95">
+            TAKE NEXT SHIFT
+        </button>
+    </div>
+
+    <script>
+        // Custom mapped coordinates based on image_8c09cd.jpg 
+        // Coordinates are percentage-based from the top-left of the board image
+        const ailments = [
+            {
+                id: 'brain',
+                name: 'The Reactive Brain',
+                desc: 'Patient is in Fight or Flight. The rational brain is completely offline.',
+                icon: 'brain',
+                top: '40%', left: '79%', width: '12%', height: '18%',
+                options: [
+                    { text: 'Explain the logical reasons why they are wrong to calm them down.', correct: false, feedback: 'BUZZER! Telling an escalated patient facts increases tension.' },
+                    { text: 'Prioritize staying calm, lower your voice, and use Box Breathing.', correct: true, feedback: 'CLEAN! Regulating your nervous system signals safety to theirs.' }
+                ]
+            },
+            {
+                id: 'opening',
+                name: 'The Vague Opening',
+                desc: '"You have the patient on the line, but you haven\'t set expectations. They fill the vacuum with demands."',
+                icon: 'help-circle',
+                top: '43%', left: '31%', width: '10%', height: '22%',
+                options: [
+                    { text: 'Wait for them to finish their story so you don\'t seem rude.', correct: false, feedback: 'BUZZER! No clear opening allows the patient to hijack the pace.' },
+                    { text: 'Introduce yourself and state: "I will ask a couple of questions so I can best help you."', correct: true, feedback: 'CLEAN! Setting role and purpose early gains you professional control.' }
+                ]
+            },
+            {
+                id: 'pace',
+                name: 'The Runaway Pace',
+                desc: '"The patient is narrating at length about events from three years ago. You are losing the facts."',
+                icon: 'clock',
+                top: '70%', left: '28%', width: '11%', height: '22%',
+                options: [
+                    { text: 'Use a Skilled Redirect: "Can I just pause you there? What is worrying you most right now?"', correct: true, feedback: 'CLEAN! Redirecting is a professional skill, not a social offense.' },
+                    { text: 'Try to type as fast as they talk and hope you don\'t miss anything.', correct: false, feedback: 'BUZZER! No pace control leads to inefficient, high-heat interactions.' }
+                ]
+            },
+            {
+                id: 'ambiguity',
+                name: 'The Ambiguous Gap',
+                desc: '"You haven\'t confirmed the details. The patient is unsure if you truly understand what they need."',
+                icon: 'cloud-fog',
+                top: '49%', left: '60%', width: '15%', height: '20%',
+                options: [
+                    { text: 'Use the "Check" step: "Before I tell you what we can do, let me confirm a couple of things."', correct: true, feedback: 'CLEAN! Confirming understanding reduces anxiety and repeat contacts.' },
+                    { text: 'Move straight to a solution to get them off the phone faster.', correct: false, feedback: 'BUZZER! Vague or uncommitted answers create distrust and follow-up calls.' }
+                ]
+            },
+            {
+                id: 'close',
+                name: 'The Frayed Close',
+                desc: '"The call is ending. You say: "We\'ll sort that for you, goodbye." The patient is confused."',
+                icon: 'link-2-off',
+                top: '78%', left: '50%', width: '10%', height: '18%',
+                options: [
+                    { text: 'Assume they know the standard procedure and move to the next patient.', correct: false, feedback: 'BUZZER! "Someone will be in touch" is a massive anxiety generator.' },
+                    { text: 'Use a Clean Close: Name the plan (who/what/when) and ask "Does that make sense?"', correct: true, feedback: 'CLEAN! A specific plan in the last 60 seconds prevents complaints.' }
+                ]
+            }
+        ];
+
+        let state = {
+            extracted: [],
+            heat: 0,
+            currentAilment: null
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateLog();
+        });
+
+        function startGame() {
+            document.getElementById('phase-briefing').classList.add('phase-hidden');
+            document.getElementById('phase-playing').classList.remove('phase-hidden');
+            renderHoles();
+            updateLog();
+            lucide.createIcons();
+        }
+
+        function renderHoles() {
+            const container = document.getElementById('ailments-layer');
+            container.innerHTML = ailments.map(a => `
+                <div id="hole-${a.id}" class="ailment-hole" 
+                     style="top: ${a.top}; left: ${a.left}; width: ${a.width}; height: ${a.height};" 
+                     onclick="openExtraction('${a.id}')">
+                     <i data-lucide="${a.icon}" class="w-8 h-8 text-white/50 pointer-events-none"></i>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function openExtraction(id) {
+            if (state.extracted.includes(id)) return; // Already extracted
+
+            const ailment = ailments.find(a => a.id === id);
+            state.currentAilment = ailment;
+            
+            document.getElementById('modal-title').innerText = ailment.name;
+            document.getElementById('modal-desc').innerText = ailment.desc;
+            document.getElementById('modal-icon-box').innerHTML = `<i data-lucide="${ailment.icon}" class="w-12 h-12"></i>`;
+            
+            // Randomize options so correct answer isn't always in the same place
+            const shuffledOptions = [...ailment.options].sort(() => Math.random() - 0.5);
+
+            const optionsHtml = shuffledOptions.map((opt, idx) => `
+                <button onclick="handleExtraction('${opt.correct}', \`${opt.feedback}\`)" class="w-full text-left p-6 rounded-3xl bg-slate-900 border-2 border-slate-700 hover:border-blue-500 hover:bg-slate-850 transition-all text-sm group flex justify-between items-center">
+                    <span class="max-w-[90%] leading-relaxed">${opt.text}</span>
+                    <i data-lucide="arrow-right-circle" class="w-6 h-6 opacity-0 group-hover:opacity-100 text-blue-400 flex-shrink-0"></i>
+                </button>
+            `).join('');
+            
+            document.getElementById('tool-options').innerHTML = optionsHtml;
+            document.getElementById('extraction-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function handleExtraction(isCorrectStr, feedbackText) {
+            const isCorrect = isCorrectStr === 'true';
+            const modal = document.getElementById('extraction-modal');
+            const instruct = document.getElementById('instruction-text');
+            
+            modal.classList.add('hidden');
+
+            if (isCorrect) {
+                state.extracted.push(state.currentAilment.id);
+                document.getElementById(`hole-${state.currentAilment.id}`).classList.add('ailment-extracted');
+                document.getElementById(`hole-${state.currentAilment.id}`).innerHTML = `<i data-lucide="check" class="w-8 h-8 text-white"></i>`;
+                instruct.innerText = feedbackText;
+                instruct.className = "text-sm font-black text-emerald-400 uppercase tracking-widest";
+            } else {
+                state.heat += 34; // 3 strikes you're out
+                triggerBuzzer();
+                instruct.innerText = feedbackText;
+                instruct.className = "text-sm font-black text-red-500 uppercase tracking-widest";
+            }
+
+            updateMeter();
+            updateLog();
+            checkGameState();
+            lucide.createIcons();
+        }
+
+        function triggerBuzzer() {
+            const board = document.getElementById('board-wrapper');
+            const overlay = document.getElementById('buzzer-overlay');
+            
+            board.classList.add('buzzer-active');
+            overlay.className = 'buzzer-flash';
+            
+            setTimeout(() => { 
+                board.classList.remove('buzzer-active'); 
+                overlay.className = 'hidden';
+            }, 500);
+        }
+
+        function updateMeter() {
+            const fill = document.getElementById('meter-fill');
+            fill.style.width = `${Math.min(state.heat, 100)}%`;
+            if (state.heat > 60) fill.classList.replace('bg-emerald-500', 'bg-red-500');
+            else if (state.heat > 30) fill.classList.replace('bg-emerald-500', 'bg-amber-500');
+        }
+
+        function updateLog() {
+            const logContainer = document.getElementById('operation-log');
+            document.getElementById('evidence-count').innerText = state.extracted.length;
+
+            if (state.extracted.length === 0) {
+                logContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-48 text-slate-500 opacity-50 italic">
+                        <i data-lucide="activity" class="w-8 h-8 mb-4"></i>
+                        <p class="text-[10px] uppercase font-black tracking-[0.2em] text-center">Awaiting procedure...<br>Select a cavity.</p>
+                    </div>`;
+            } else {
+                logContainer.innerHTML = state.extracted.map(id => {
+                    const ailment = ailments.find(a => a.id === id);
+                    return `
+                        <div class="p-4 rounded-2xl bg-emerald-900/20 border border-emerald-500/30 animate-in slide-in-from-right-4 duration-500">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                                <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Extracted</span>
+                            </div>
+                            <p class="text-sm font-bold text-slate-200">${ailment.name}</p>
+                        </div>
+                    `;
+                }).join('');
+            }
+            lucide.createIcons();
+        }
+
+        function checkGameState() {
+            if (state.heat >= 100) {
+                setTimeout(() => endGame(false), 800);
+            } else if (state.extracted.length === ailments.length) {
+                setTimeout(() => endGame(true), 800);
+            }
+        }
+
+        function endGame(won) {
+            document.getElementById('phase-playing').classList.add('phase-hidden');
+            document.getElementById('phase-result').classList.remove('phase-hidden');
+            
+            const title = document.getElementById('result-title');
+            const body = document.getElementById('result-body');
+            const icon = document.getElementById('result-icon-container');
+
+            if (won) {
+                icon.className = "w-32 h-32 bg-emerald-500 rounded-[40px] flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(16,185,129,0.4)]";
+                icon.innerHTML = `<i data-lucide="check-check" class="w-16 h-16 text-white"></i>`;
+                title.innerText = "PROCEDURE SUCCESS";
+                title.className = "text-5xl font-black uppercase mb-4 tracking-tighter text-emerald-400";
+                body.innerText = "You have successfully repaired the structural failures! By using the 4-Part Structure (Open, Gather, Check, Close), you've reduced call time and heat, ensuring a safer clinic environment.";
+            } else {
+                icon.className = "w-32 h-32 bg-red-600 rounded-[40px] flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(239,68,68,0.4)]";
+                icon.innerHTML = `<i data-lucide="alert-octagon" class="w-16 h-16 text-white"></i>`;
+                title.innerText = "PATIENT FLATLINED";
+                title.className = "text-5xl font-black uppercase mb-4 tracking-tighter text-red-500";
+                body.innerText = "You touched the sides too many times! By taking the bait and missing the structural steps, the interaction collapsed into total conflict.";
+            }
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
